@@ -1,0 +1,90 @@
+#!/bin/bash
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+##### Installing Graylog
+# https://go2docs.graylog.org/5-1/downloading_and_installing_graylog/ubuntu_installation.html
+
+# For more reference follow the link : https://www.vultr.com/docs/how-to-install-graylog-on-ubuntu-20-04/
+
+
+# Step1: Create a virtual machine to configure a graylog. (If not exist)
+# Step2: Login the server and run the below commands:
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+echo -e "\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+echo "Setting TimeZone"
+echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n\n"
+sudo timedatectl set-timezone UTC
+sudo apt-get install gnupg
+wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+echo -e "\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+echo "Installing Java 17"
+echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n\n"
+
+sudo apt install openjdk-17-jdk
+
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+echo -e "\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+echo "Installing MongoDB"
+echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n\n"
+os=$(. /etc/os-release; echo "$VERSION_ID")
+
+######## Ubuntu 20
+if [[ "${os}" == "20"* ]]
+then
+    echo "OS - Ubuntu 20 detected"
+    echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+
+######## Ubuntu 22
+elif [[ "${os}" == "22"* ]]
+then
+    echo "OS - Ubuntu 22 detected"
+#    sudo wget -qO- 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf5679a222c647c87527c2f8cb00a0bd1e2c63c11' | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/graylog-keyring.gpg >/dev/null
+    echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+
+else
+    echo "OS Other than 20 or 22"
+fi
+
+
+sudo apt-get update
+sudo apt-get install -y mongodb-org
+
+wget -qO- 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf5679a222c647c87527c2f8cb00a0bd1e2c63c11' | sudo apt-key add -
+
+sudo systemctl daemon-reload
+sudo systemctl enable mongod.service
+sudo systemctl restart mongod.service
+sudo systemctl --type=service --state=active | grep mongod
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+echo -e "\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+echo "Installing Elasticsearch"
+echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n\n"
+
+wget -q https://artifacts.elastic.co/GPG-KEY-elasticsearch -O myKey
+sudo apt-key add myKey
+echo "deb https://artifacts.elastic.co/packages/oss-7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+sudo apt-get update && sudo apt-get install elasticsearch-oss
+
+sudo sed -i '/cluster.name: my-application/a action.auto_create_index: false' /etc/elasticsearch/elasticsearch.yml
+sudo sed -i '/cluster.name: my-application/a cluster.name: graylog' /etc/elasticsearch/elasticsearch.yml
+
+
+sudo systemctl daemon-reload
+sudo systemctl enable elasticsearch.service
+sudo systemctl restart elasticsearch.service
+sudo systemctl --type=service --state=active | grep elasticsearch
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+echo -e "\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+echo "Installing Graylog"
+echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n\n"
+
+wget https://packages.graylog2.org/repo/packages/graylog-5.0-repository_latest.deb
+sudo dpkg -i graylog-5.0-repository_latest.deb
+sudo apt-get update -y
+sleep 15
