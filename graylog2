@@ -1,0 +1,229 @@
+#!/bin/bash
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+echo -e "\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+echo "Installing Graylog DONE ++++++++++++++++++++++++++++++++++++++++++++++++="
+echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n\n"
+
+## Generate password Secret
+sudo apt install pwgen -y 
+#pwgen -N 1 -s 96 (note: copy the password generated and copy "password_secret")
+password_secret=$(pwgen -N 1 -s 96)
+echo "$password_secret"
+sudo sed -i "s/password_secret =.*/password_secret = $password_secret/" /etc/graylog/server/server.conf
+
+## Setting a Username
+sudo sed -i '/root_username = admin/a root_username = demoadmin' /etc/graylog/server/server.conf
+
+## Generate password Hash (note: copy the password generated and  "root_password_sha2")
+echo "."
+echo "."
+echo "."
+echo "."
+sleep 10
+echo "Enter the passoword to set"
+root_password_sha2=$(echo -n "root_password_sha2 = " && head -1 </dev/stdin | tr -d '\n' | sha256sum | cut -d" " -f1)
+echo "."
+echo "$root_password_sha2"
+sudo sed -i "s/root_password_sha2 =.*/$root_password_sha2/" /etc/graylog/server/server.conf
+#sudo sed -i 's/root_password_sha2 = .*/'"$root_password_sha2"'/' /etc/graylog/server/server.conf
+#sudo sed -i 's/root_password_sha2 = .*/root_password_sha2 = '"$root_password_sha2"'/' /etc/graylog/server/server.conf
+
+
+echo "."
+echo "."
+
+## Make Graylog availbe from outside. 
+sudo sed -i '/Default: 127.0.0.1:9000/a http_bind_address = 0.0.0.0:9000' /etc/graylog/server/server.conf
+
+sudo systemctl daemon-reload
+sudo systemctl restart graylog-server
+sudo systemctl enable graylog-server
+#sudo systemctl status graylog-server
+sudo systemctl --type=service --state=active | grep graylog
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+# echo -e "\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+# echo "System Fine Tunning"
+# echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n\n"
+
+# sudo sed -i 's/elasticsearch_max_number_of_indices = 20/elasticsearch_max_number_of_indices = 50/' /etc/graylog/server/server.conf
+# sudo sed -i 's/elasticsearch_shards = 4/elasticsearch_shards = 20/' /etc/graylog/server/server.conf
+# sudo sed -i 's/allow_leading_wildcard_searches = false/allow_leading_wildcard_searches = true/' /etc/graylog/server/server.conf
+# sudo sed -i 's/output_batch_size = 500/output_batch_size = 2000/' /etc/graylog/server/server.conf
+# sudo sed -i 's/processbuffer_processors = 5/processbuffer_processors = 15/' /etc/graylog/server/server.conf
+# sudo sed -i 's/outputbuffer_processors = 3/outputbuffer_processors = 15/' /etc/graylog/server/server.conf
+# sudo sed -i 's/ring_size = 65536/ring_size = 262144/' /etc/graylog/server/server.conf
+# sudo sed -i 's/inputbuffer_ring_size = 65536/inputbuffer_ring_size = 262144/' /etc/graylog/server/server.conf
+# sudo sed -i 's/inputbuffer_processors = 2/inputbuffer_processors = 4/' /etc/graylog/server/server.conf
+
+# echo -e "\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+# echo "Mail Configuration"
+# echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n\n"
+# # Email transport
+# sudo sed -i '/# Email transport/a transport_email_from_email = graylog@rezo.ai' /etc/graylog/server/server.conf
+# sudo sed -i '/# Email transport/a transport_email_subject_prefix = Graylog-Alert' /etc/graylog/server/server.conf
+# sudo sed -i '/# Email transport/a transport_email_auth_password = BJxx6Qe2Yv2d9lqm1FARWfsdEIJ6LzlKfi7gjN0Kqx40' /etc/graylog/server/server.conf
+# sudo sed -i '/# Email transport/a transport_email_auth_username = AKIA2LQ7GWD3UWLPYYWK' /etc/graylog/server/server.conf
+# sudo sed -i '/# Email transport/a transport_email_use_auth = true' /etc/graylog/server/server.conf
+# sudo sed -i '/# Email transport/a transport_email_port = 587' /etc/graylog/server/server.conf
+# sudo sed -i '/# Email transport/a transport_email_hostname = email-smtp.ap-south-1.amazonaws.com' /etc/graylog/server/server.conf
+# sudo sed -i '/# Email transport/a transport_email_enabled = true' /etc/graylog/server/server.conf
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart graylog-server
+sudo systemctl enable graylog-server
+#sudo systemctl status graylog-server
+sudo systemctl --type=service --state=active | grep graylog
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+## Adding JVM memory to Graylog and Elastick Search
+#!/bin/bash
+# Calculate the sum of memory and swap
+# total_mem_swap=$(free -g | awk '/^Mem:/{mem=$2} /^Swap:/{swap=$2} END{print mem+swap}')
+
+# Calculate 40% and 45% of the total
+# Mem_for_JVM=$((total_mem_swap * 40 / 100))
+# Mem_for_Elastic=$((total_mem_swap * 45 / 100))
+
+# # Print the values
+# echo "40% of total: $Mem_for_JVM"
+# echo "45% of total: $Mem_for_Elastic"
+
+
+
+# sudo nano /etc/default/graylog-server
+# sudo nano /etc/elasticsearch/jvm.options
+
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+# echo -e "\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+# echo "Insstalling NGINX and Configuration"
+# echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n\n"
+
+# echo 'Installing NGINX'
+# echo '.'
+# sudo apt install update -y
+# sudo apt install nginx -y
+
+# ## Taking backup of Default config.
+# sudo cp /etc/nginx/sites-available/default /etc/nginx/sites-available/default.bak
+
+# ## truncate old Default
+# file="/etc/nginx/sites-available/default"
+# sudo truncate --size 0 "$file"
+
+
+# sudo sh -c "echo 'server{
+#     listen 80;
+#     return 301 https://$host$request_uri;
+# }
+
+# ###################
+# ####### Dashboard
+
+# server {
+#     listen 443 ssl;
+
+#     ssl_certificate     /etc/ca-certificates/new_STAR_rezo_ai.bundle.crt;
+#     ssl_certificate_key /etc/ca-certificates/new_star_rezo_ai.key;
+
+#     location / {
+#         proxy_pass      http://127.0.0.1:9000/;
+#         resolver 8.8.8.8;
+#     }
+# }' > /etc/nginx/sites-available/default"
+
+# sudo cp ./2SSL-Files/* /etc/ca-certificates/
+# sudo systemctl restart nginx.service
+# #sudo systemctl status nginx.service
+# sudo systemctl --type=service --state=active | grep nginx
+
+# # Step3:  
+# # Graylog Ready now.. 
+# echo -e "\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+# echo "GrayLog Ready to USE"
+# echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n\n"
+
+# IP=$(hostname -i)
+# echo "Access Graylog using this :-   http://$IP/"
+# echo "Access Graylog over SSL  using this :-   https://$IP/"
+# echo "use Username: rezoadmin"
+# echo "password: That you have entered"
+
+
+##### $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ #####
+
+# a)  Access Graylog Web UI
+# Username: admin
+# password: That you have entered in the Config file under the "root_password_sha2" tag.
+
+# [In scenario you forget the password, reset the password by using the below commands and also update the password in  the server.conf file.
+
+# echo -n "Enter Password: " && head -1 </dev/stdin | tr -d '\n' | sha256sum | cut -d" " -f1
+# Type your password after prompt Enter Password:
+# Press Enter
+# Use generated password in server.conf in parameter root_password_sha2 =
+# Restart graylog service ]
+
+# b.) add clients to the Graylog system log manager:
+
+# 1 ) Log in to your Graylog server and click System/Inputs. From the resulting window, select Syslog UDP from the Select Input drop-down
+# Click Launch New Input and fill out the following information (Figure B):
+# Node: Select the node for the hosting server.
+# Title: syslog
+# Bind address: 0.0.0.0
+# Port: 5140
+# Note: Once you’ve filled out that information, click Save. Now we need to configure our clients.
+# ######## For more reference refer :https://www.techrepublic.com/article/how-to-add-clients-to-the-graylog-system-log-manager/
+
+# 2.) configure your Linux clients to sent syslog information:
+
+# cd  /etc/rsyslog.d/  (#Changing directory to your working directory)
+# sudo touch  /etc/rsyslog.d/graylog_syslog.conf  (Create the file if not exist and enter the below entry)
+#              *.* @3.6.38.157:9514;RSYSLOG_SyslogProtocol23Format    //change the IP here
+# sudo systemctl restart rsyslog
+
+# Step6: Testing:
+# under path etc/rsyslog.d run the commands:
+# echo '{"version": "1.1","host":"example.org","short_message":"A short message that helps you identify what is going on","full_message":"Backtrace here\n\nmore stuff","level":1,"_user_id":9001,"_some_info":"foo","_some_env_var":"bar"}' | nc -w 1 3.6.38.157 9515  
+# telnet 3.6.38.157 9514
+# echo "*.* @syslog.rezo.ai:9514;RSYSLOG_SyslogProtocol23Format" | sudo tee -a /etc/rsyslog.d/graylog_syslog.conf
+# ################For more help refer to the script on path "https://git.rezo.ai/keshav.gupta/infra-scripts/-/blob/main/Scripts/syslog.sh"
+
+# Notes:
+# 1. For Domain reach out to Harsh.
+# 2. Before testing make sure the ports are open for the syslog entries
+
+# Step 4:
+#  Install the ngnix
+# sudo apt install ngnix
+# sudo apt install nginx
+# sudo vi /etc/nginx/sites-available/default
+# server {
+#         listen 80;
+#      server_name 13.235.235.226;       //change server IP here
+#      return 301 https://$host$request_uri;
+
+# }
+
+# server {
+# listen 443 ssl;
+
+# ssl_certificate     /etc/ca-certificates/new_STAR_rezo_ai.bundle.crt;
+# ssl_certificate_key /etc/ca-certificates/new_star_rezo_ai.key;
+
+#       location / {
+#                 proxy_pass      http://127.0.0.1:5000/;
+#                 resolver 8.8.8.8;
+#               }
+# }
+
+# ls
+# sudo cp ssl/* /etc/ca-certificates/
+# sudo systemctl restart nginx.service
+# sudo systemctl status nginx.service
+# sudo nano /etc/nginx/sites-available/default
